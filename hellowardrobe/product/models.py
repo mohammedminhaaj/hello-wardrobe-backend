@@ -12,10 +12,10 @@ class PrimaryCategory(models.Model):
         return self.name
     
     class Meta:
-        verbose_name = "Primary Category"
-        verbose_name_plural = "Primary Categories"
-        db_table = "primary_category"
-        ordering = ["name"] 
+        verbose_name = 'Primary Category'
+        verbose_name_plural = 'Primary Categories'
+        db_table = 'primary_category'
+        ordering = ['name'] 
 
 class SecondaryCategory(models.Model):
     name = models.CharField(max_length = 20)
@@ -26,10 +26,10 @@ class SecondaryCategory(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = "Seconday Category"
-        verbose_name_plural = "Secondary Categories"
-        db_table = "secondary_category"
-        ordering = ["name"]
+        verbose_name = 'Seconday Category'
+        verbose_name_plural = 'Secondary Categories'
+        db_table = 'secondary_category'
+        ordering = ['name']
 
 class Product(models.Model):
     name = models.CharField(max_length = 50)
@@ -43,7 +43,7 @@ class Product(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = "Product"
-        verbose_name_plural = "Products"
-        db_table = "product"
-        ordering = ["name"]
+        verbose_name = 'Product'
+        verbose_name_plural = 'Products'
+        db_table = 'product'
+        ordering = ['name']

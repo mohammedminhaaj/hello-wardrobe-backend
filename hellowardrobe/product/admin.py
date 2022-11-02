@@ -4,9 +4,9 @@ from .models import PrimaryCategory, SecondaryCategory, Product
 
 # Register your models here.
 
-admin.site.site_header = "Hello Wardrobe Admin"
-admin.site.site_title = "Hello Wardrobe Admin"
-admin.site.index_title = "Admin Portal"
+admin.site.site_header = 'Hello Wardrobe Admin'
+admin.site.site_title = 'Hello Wardrobe Admin'
+admin.site.index_title = 'Admin Portal'
 
 admin.site.register(PrimaryCategory)
 admin.site.register(SecondaryCategory)
