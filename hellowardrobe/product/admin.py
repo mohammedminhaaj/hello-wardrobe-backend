@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import PrimaryCategory, SecondaryCategory, Product, Size, Tag
+from .models import PrimaryCategory, SecondaryCategory, Product, Size, Tag, TagMaster
 
 # Register your models here.
 
@@ -10,9 +10,13 @@ admin.site.index_title = 'Admin Portal'
 
 admin.site.register(PrimaryCategory)
 admin.site.register(SecondaryCategory)
-admin.site.register(Product)
 admin.site.register(Size)
+admin.site.register(TagMaster)
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     list_display = ['name', 'category']
+
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ['name', 'price','primary_category','secondary_category','is_active']

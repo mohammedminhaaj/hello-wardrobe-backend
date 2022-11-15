@@ -1,8 +1,8 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from .models import Product, Tag, Size, PrimaryCategory, SecondaryCategory
-from api.serializers.product_serializer import ProductSerializer, TagSerializer, SizeSerializer, PrimaryCategorySerializer, SecondaryCategorySerializer
+from .models import Product, Tag, Size, PrimaryCategory, SecondaryCategory, TagMaster
+from api.serializers.product_serializer import ProductSerializer, TagSerializer, SizeSerializer, PrimaryCategorySerializer, SecondaryCategorySerializer, TagMasterSerializer
 
 
 # Create your views here.
@@ -43,20 +43,23 @@ def list_products(request):
 def filter_details(request):
     primary_category_data = PrimaryCategory.objects.filter(is_active=True)
     secondary_category_data = SecondaryCategory.objects.filter(is_active=True)
-    filter_data = Tag.objects.filter(is_active=True)
     size_data = Size.objects.filter(is_active=True)
+    filter_labels = TagMaster.objects.filter(is_active=True)
+    filter_data = Tag.objects.select_related('category').filter(is_active=True)
 
     primary_category_serializer = PrimaryCategorySerializer(
         primary_category_data, many=True)
     secondary_category_serializer = SecondaryCategorySerializer(
         secondary_category_data, many=True)
-    filter_data_serializer = TagSerializer(filter_data, many=True)
     size_data_serializer = SizeSerializer(size_data, many=True)
+    filter_label_serializer = TagMasterSerializer(filter_labels, many=True)
+    filter_data_serializer = TagSerializer(filter_data, many=True)
 
     response = {
         'primary_category_details': primary_category_serializer.data,
         'secondary_category_details': secondary_category_serializer.data,
+        'size_details': size_data_serializer.data,
+        'filter_labels': filter_label_serializer.data,
         'filter_details': filter_data_serializer.data,
-        'size_details': size_data_serializer.data
     }
     return Response(response)

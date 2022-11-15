@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from product.models import Product, PrimaryCategory, SecondaryCategory, Size, Tag
+from product.models import Product, PrimaryCategory, SecondaryCategory, Size, Tag, TagMaster
 
 
 class PrimaryCategorySerializer(serializers.ModelSerializer):
@@ -35,7 +35,15 @@ class SizeSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'category']
 
 
+class TagMasterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TagMaster
+        fields = ['id', 'name']
+
+
 class TagSerializer(serializers.ModelSerializer):
+    category = TagMasterSerializer()
+
     class Meta:
         model = Tag
         fields = ['id', 'name', 'category']
