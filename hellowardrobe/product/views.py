@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from .models import Product, Tag, Size, PrimaryCategory, SecondaryCategory, TagMaster
-from api.serializers.product_serializer import ProductSerializer, TagSerializer, SizeSerializer, PrimaryCategorySerializer, SecondaryCategorySerializer, TagMasterSerializer
+from api.serializers.product_serializer import ProductListSerializer, ProductOverviewSerializer, TagSerializer, SizeSerializer, PrimaryCategorySerializer, SecondaryCategorySerializer, TagMasterSerializer
 
 
 # Create your views here.
@@ -35,7 +35,7 @@ def list_products(request):
     products = products.only(
         'name', 'price', 'primary_category', 'secondary_category').distinct()
     result = paginator.paginate_queryset(products, request)
-    serializer = ProductSerializer(result, many=True)
+    serializer = ProductListSerializer(result, many=True)
     return paginator.get_paginated_response(serializer.data)
 
 
@@ -63,3 +63,10 @@ def filter_details(request):
         'filter_details': filter_data_serializer.data,
     }
     return Response(response)
+
+
+@api_view(['GET'])
+def product_overview(request, url_name):
+    product = Product.objects.get(url_name=url_name)
+    serializer = ProductOverviewSerializer(product, many=False)
+    return Response(serializer.data)

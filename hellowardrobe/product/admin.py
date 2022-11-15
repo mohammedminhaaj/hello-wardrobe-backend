@@ -13,10 +13,14 @@ admin.site.register(SecondaryCategory)
 admin.site.register(Size)
 admin.site.register(TagMaster)
 
+
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     list_display = ['name', 'category']
 
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ['name', 'price','primary_category','secondary_category','is_active']
+    prepopulated_fields = {'url_name': ('name',)}
+    list_display = ['name', 'url_name', 'price', 'primary_category',
+                    'secondary_category', 'is_active']

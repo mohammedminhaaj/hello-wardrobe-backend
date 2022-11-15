@@ -49,7 +49,7 @@ class TagSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'category']
 
 
-class ProductSerializer(serializers.ModelSerializer):
+class ProductListSerializer(serializers.ModelSerializer):
 
     # primary_category = PrimaryCategorySerializer()
     # secondary_category = SecondaryCategorySerializer()
@@ -58,4 +58,13 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'price']
+        fields = ['id', 'name', 'price', 'url_name']
+
+
+class ProductOverviewSerializer(serializers.ModelSerializer):
+    size = SizeSerializer(read_only=True, many=True)
+
+    class Meta:
+        model = Product
+        exclude = ['id', 'url_name', 'primary_category', 'secondary_category',
+                   'tags', 'created_on', 'updated_on', 'is_active']
