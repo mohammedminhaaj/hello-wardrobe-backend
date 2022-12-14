@@ -28,7 +28,7 @@ class SizeSerializer(serializers.ModelSerializer):
     category = serializers.SerializerMethodField()
 
     def get_category(self, obj):
-        return 'size'
+        return {'name':'size'}
 
     class Meta:
         model = Size
@@ -48,6 +48,12 @@ class TagSerializer(serializers.ModelSerializer):
         model = Tag
         fields = ['id', 'name', 'category']
 
+class FilterSerializer(serializers.Serializer):
+    primary_category_details = PrimaryCategorySerializer(many = True)
+    secondary_category_details = SecondaryCategorySerializer(many = True)
+    size_details = SizeSerializer(many = True)
+    filter_labels = TagMasterSerializer(many = True)
+    filter_details = TagSerializer(many = True)
 
 class ProductListSerializer(serializers.ModelSerializer):
 
@@ -66,5 +72,5 @@ class ProductOverviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        exclude = ['id', 'url_name', 'primary_category', 'secondary_category',
-                   'tags', 'created_on', 'updated_on', 'is_active']
+        exclude = ['primary_category', 'secondary_category',
+                   'tags', 'created_on', 'updated_on']

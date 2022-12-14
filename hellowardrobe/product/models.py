@@ -88,6 +88,10 @@ class Product(models.Model):
     name = models.CharField(max_length=50)
     url_name = models.SlugField(db_index=True, max_length=60, unique=True)
     price = models.DecimalField(max_digits=6, decimal_places=2)
+    description = models.CharField(max_length=512)
+    highlights = models.CharField(max_length=256, help_text=_('Separate each list item with a semicolon (;)'))
+    details = models.CharField(max_length=256)
+    original_price = models.DecimalField(max_digits=7, decimal_places=2)
     primary_category = models.ForeignKey(
         PrimaryCategory, on_delete=models.CASCADE, limit_choices_to=Q(is_active=True))
     secondary_category = models.ForeignKey(
