@@ -2,25 +2,37 @@ from django.contrib import admin
 
 from .models import PrimaryCategory, SecondaryCategory, Product, Size, Tag, TagMaster
 
+from common.admin import AuditedAdminMixin
+
 # Register your models here.
 
-admin.site.site_header = 'Hello Wardrobe Admin'
-admin.site.site_title = 'Hello Wardrobe Admin'
-admin.site.index_title = 'Admin Portal'
+@admin.register(PrimaryCategory)
+class PrimaryCategoryAdmin(AuditedAdminMixin):
+    list_display = ['name', 'display_name']
 
-admin.site.register(PrimaryCategory)
-admin.site.register(SecondaryCategory)
-admin.site.register(Size)
-admin.site.register(TagMaster)
+
+@admin.register(SecondaryCategory)
+class SecondaryCategoryAdmin(AuditedAdminMixin):
+    list_display = ['name', 'display_name']
+
+
+@admin.register(Size)
+class SizeAdmin(AuditedAdminMixin):
+    list_display = ['name', 'display_name']
+
+
+@admin.register(TagMaster)
+class TagMasterAdmin(AuditedAdminMixin):
+    list_display = ['name', 'display_name']
 
 
 @admin.register(Tag)
-class TagAdmin(admin.ModelAdmin):
-    list_display = ['name', 'category']
+class TagAdmin(AuditedAdminMixin):
+    list_display = ['name', 'display_name', 'category']
 
 
 @admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
+class ProductAdmin(AuditedAdminMixin):
     prepopulated_fields = {'url_name': ('name',)}
     list_display = ['name', 'url_name', 'price', 'primary_category',
-                    'secondary_category', 'is_active']
+                    'secondary_category', 'is_featured', 'region']

@@ -1,4 +1,6 @@
+from api.serializers.user_serializer import ForgotPasswordSerializer, CreateAccountSerializer, CredentialLoginSerializer, OtpLoginSerializer, VerifyOtpSerializer
 from .models import UserOtp, User
+from .authentication import create_user, login_user
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.request import Request
@@ -6,74 +8,171 @@ from os import getenv
 from dotenv import load_dotenv
 from django.utils.timezone import now
 from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.auth.signals import user_logged_out, user_login_failed
 from datetime import timedelta
 from base64 import b64decode
 from rest_framework import status
 import requests
 import random
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
+import json
+import secrets
+from common.utils import ResponsePayload
 
 # Create your views here.
 
 
 @api_view(["POST"])
-def send_otp(request: Request):
-    load_dotenv()
-    url = "https://www.fast2sms.com/dev/bulkV2"
-    otp = random.randint(100000, 999999)
-    mobile_number = request.data.get('mobileNumber')
-    payload = f"variables_values={otp}&route=otp&numbers={mobile_number}"
-    headers = {
-        'authorization': b64decode(getenv("FAST2SMS_APIKEY")).decode(),
-        'Content-Type': "application/x-www-form-urlencoded",
-        'Cache-Control': "no-cache",
-    }
-
-    try:
-        obj = UserOtp.objects.get(mobile=mobile_number)
-        obj.otp = make_password(str(otp))
-        obj.attempts = obj.attempts + 1 if now() <= obj.expires_on else 1
-        obj.expires_on = now() + timedelta(minutes=30)
-        obj.save(update_fields=["otp", "expires_on", "attempts"])
-    except UserOtp.DoesNotExist:
-        obj = UserOtp.objects.create(mobile=mobile_number, otp=make_password(
-            str(otp)), expires_on=now() + timedelta(minutes=30))
-    except:
-        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+def credential_login(request: Request):
+    serializer = CredentialLoginSerializer(data=request.data)
+    if serializer.is_valid():
+        return login_user(serializer.validated_data, request)
+    else:
+        return ResponsePayload().serializer_error(serializer.errors)
 
 
-    response = requests.request("POST", url, data=payload, headers=headers) if obj.attempts <= 5 else {
-        "details": "Maximum attempts exceeded. Please try again after some time",
-        "attemptsExceeded": True}
+@api_view(["POST"])
+def create_account(request: Request):
+    serializer = CreateAccountSerializer(data=request.data)
+    if serializer.is_valid():
+        return create_user(serializer.validated_data, request)
+    else:
+        return ResponsePayload().serializer_error(serializer.errors)
 
-    return Response(response, status=status.HTTP_200_OK)
+
+@api_view(["POST"])
+def otp_login(request: Request):
+    serializer = OtpLoginSerializer(data=request.data)
+    if serializer.is_valid():
+        load_dotenv()
+        url = "https://www.fast2sms.com/dev/bulkV2"
+        otp = random.randint(100000, 999999)
+        mobile_number = serializer.validated_data.get('mobile_number')
+        payload = f"variables_values={otp}&route=otp&numbers={mobile_number}"
+        headers = {
+            'authorization': b64decode(getenv("FAST2SMS_APIKEY")).decode(),
+            'Content-Type': "application/x-www-form-urlencoded",
+            'Cache-Control': "no-cache",
+        }
+
+        try:
+            obj = UserOtp.objects.get(mobile=mobile_number)
+            obj.otp = make_password(str(otp))
+            obj.attempts = obj.attempts + 1 if now() <= obj.expires_on else 1
+            obj.expires_on = now() + timedelta(minutes=30)
+            obj.save(update_fields=["otp", "expires_on", "attempts"])
+        except UserOtp.DoesNotExist:
+            obj = UserOtp.objects.create(mobile=mobile_number, otp=make_password(
+                str(otp)), expires_on=now() + timedelta(minutes=30))
+        except Exception as e:
+            return ResponsePayload().error(str(e), status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        if obj.attempts <= 5:
+            response = requests.request(
+                "POST", url, data=payload, headers=headers)
+            return ResponsePayload().success(data=response.json())
+        else:
+            user_login_failed.send(User, {"email_number": obj.mobile}, request)
+            return ResponsePayload().error("Maximum attempts exceeded. Please try again after some time")
+    else:
+        return ResponsePayload().serializer_error(serializer.errors)
 
 
 @api_view(["POST"])
 def verify_otp(request: Request):
-    mobile_number = request.data.get('mobileNumber')
-    otp = request.data.get("verifyOtp")
+    serializer = VerifyOtpSerializer(data=request.data)
+    if not serializer.is_valid():
+        return ResponsePayload().serializer_error(serializer.errors)
+
+    mobile_number = serializer.validated_data.get('mobile_number')
+    otp = serializer.validated_data.get('otp')
     try:
         obj = UserOtp.objects.get(mobile=mobile_number)
         verified = check_password(otp, obj.otp)
-        if verified:
+        if verified and obj.attempts <= 6:
             if obj.expires_on <= now():
-                return Response({"details": "Oops, the OTP expired"}, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                user, created = User.objects.get_or_create(
-                    mobile=obj.mobile,
-                    display_name=obj.mobile,
-                    last_login = now()
-                )
-                obj.attempts = 0
-                obj.save(update_fields=["attempts"])
-                if not created:
-                    user.last_login = now()
-                    user.save(update_fields=["last_login"])
-                return Response({"details": "Login successful", "id": user.id}, status=status.HTTP_200_OK)
-        else:
-            return Response({"details": "Incorrect OTP"}, status=status.HTTP_400_BAD_REQUEST)
+                return ResponsePayload().error("Oops, the OTP expired")
+
+            obj.attempts = 0
+            obj.save(update_fields=["attempts"])
+
+            response = login_user({"email_number": obj.mobile}, request)
+            if response and "code" in response["error"] and response["error"]["code"] == status.HTTP_404_NOT_FOUND:
+                response = create_user(
+                    {"mobile_number": obj.mobile, "password": secrets.token_urlsafe(8)}, request)
+            return response
+
+        obj.attempts = obj.attempts + 1
+        obj.save(update_fields=["attempts"])
+        user_login_failed.send(User, {"email_number": obj.mobile}, request)
+        return ResponsePayload().error("Incorrect OTP" if obj.attempts <= 6 else "Maximum attempts exceeded. Please try again after some time")
 
     except UserOtp.DoesNotExist:
-        return Response({"details": "Error while validating OTP"}, status=status.HTTP_404_NOT_FOUND)
-    except:
-        return Response({"details": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return ResponsePayload().error("Error while validating OTP")
+    except Exception as e:
+        return ResponsePayload().error(str(e), status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(["POST"])
+def logout(request: Request):
+    response = Response()
+    auth_cookie = request.COOKIES.get('authToken', '')
+    if not auth_cookie:
+        response.data = {
+            "message": "Please login to your account before logging out"}
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return response
+    response.delete_cookie("authToken")
+    response.data = {
+        "message": "User logged out successfully",
+    }
+    response.status_code = status.HTTP_200_OK
+    try:
+        user_id = RefreshToken(json.loads(auth_cookie)[
+                               "refresh"]).get("user_id")
+        user_logged_out.send(sender=User, user=User.objects.get(pk=user_id))
+    except (TokenError, IndexError, User.DoesNotExist):
+        pass
+    return response
+
+
+@api_view(["POST"])
+def forgot_password(request: Request):
+    serializer = ForgotPasswordSerializer(data=request.data)
+    if serializer.is_valid():
+        try:
+            user = User.objects.get(**serializer.validated_data)
+            password = secrets.token_urlsafe(8)
+            user.password = make_password(password)
+            user.save(update_fields=["password"])
+            print(password)
+            """
+            Email sending logic goes here
+            """
+            return ResponsePayload().success(data={"email": user.email})
+
+        except User.DoesNotExist:
+            return ResponsePayload().error("Sorry, we didn't find any account linked to the given details", status.HTTP_404_NOT_FOUND)
+    else:
+        return ResponsePayload().serializer_error(serializer.errors)
+
+
+@api_view(["POST"])
+def refresh_token(request: Request):
+    token = request.COOKIES.get('authToken', '')
+    if not token:
+        return ResponsePayload().error("Access token not found")
+    auth_token = json.loads(token)
+    response = Response()
+    try:
+        generated_token = RefreshToken(auth_token["refresh"])
+        auth_token["access"] = str(generated_token.access_token)
+        response.status_code = status.HTTP_200_OK
+        response.set_cookie("authToken", json.dumps(auth_token), httponly=True)
+        return response
+    except TokenError:
+        response.delete_cookie("authToken")
+        response.data = {"message": "Refresh token expired"}
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return response

@@ -10,7 +10,7 @@ class PrimaryCategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PrimaryCategory
-        fields = ['id', 'name', 'category']
+        fields = ['id', 'display_name', 'category']
 
 
 class SecondaryCategorySerializer(serializers.ModelSerializer):
@@ -21,24 +21,24 @@ class SecondaryCategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SecondaryCategory
-        fields = ['id', 'name', 'category']
+        fields = ['id', 'display_name', 'category']
 
 
 class SizeSerializer(serializers.ModelSerializer):
     category = serializers.SerializerMethodField()
 
     def get_category(self, obj):
-        return {'name':'size'}
+        return {'display_name':'size'}
 
     class Meta:
         model = Size
-        fields = ['id', 'name', 'category']
+        fields = ['id', 'display_name', 'category']
 
 
 class TagMasterSerializer(serializers.ModelSerializer):
     class Meta:
         model = TagMaster
-        fields = ['id', 'name']
+        fields = ['id', 'display_name']
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -46,7 +46,7 @@ class TagSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Tag
-        fields = ['id', 'name', 'category']
+        fields = ['id', 'display_name', 'category']
 
 class FilterSerializer(serializers.Serializer):
     primary_category_details = PrimaryCategorySerializer(many = True)
@@ -73,4 +73,4 @@ class ProductOverviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         exclude = ['primary_category', 'secondary_category',
-                   'tags', 'created_on', 'updated_on']
+                   'tags', 'created_at', 'created_by', "modified_at", "modified_by", "deleted_by"]

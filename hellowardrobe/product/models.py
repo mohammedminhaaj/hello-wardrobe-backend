@@ -1,50 +1,54 @@
 from django.db import models
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
+from common.models import Region, AuditedModel, SoftDeleteModel, SoftDeleteManager, RestorableManager
 
 # Create your models here.
 
 
-class PrimaryCategory(models.Model):
+class PrimaryCategory(AuditedModel, SoftDeleteModel):
     name = models.CharField(max_length=20)
-    created_on = models.DateTimeField(auto_now_add=True, editable=False)
-    updated_on = models.DateTimeField(auto_now=True, editable=False)
-    is_active = models.BooleanField(default=True)
+    display_name = models.CharField(max_length=20)
+
+    objects = SoftDeleteManager()
+    all_objects = RestorableManager()
 
     def __str__(self) -> str:
-        return self.name
+        return self.display_name
 
     class Meta:
         verbose_name = 'Primary Category'
         verbose_name_plural = 'Primary Categories'
         db_table = 'primary_category'
-        ordering = ['name']
+        ordering = ['display_name']
 
 
-class SecondaryCategory(models.Model):
+class SecondaryCategory(AuditedModel, SoftDeleteModel):
     name = models.CharField(max_length=20)
-    created_on = models.DateTimeField(auto_now_add=True, editable=False)
-    updated_on = models.DateTimeField(auto_now=True, editable=False)
-    is_active = models.BooleanField(default=True)
+    display_name = models.CharField(max_length=20)
+
+    objects = SoftDeleteManager()
+    all_objects = RestorableManager()
 
     def __str__(self) -> str:
-        return self.name
+        return self.display_name
 
     class Meta:
         verbose_name = 'Seconday Category'
         verbose_name_plural = 'Secondary Categories'
         db_table = 'secondary_category'
-        ordering = ['name']
+        ordering = ['display_name']
 
 
-class Size(models.Model):
+class Size(AuditedModel, SoftDeleteModel):
     name = models.CharField(max_length=5)
-    created_on = models.DateTimeField(auto_now_add=True, editable=False)
-    updated_on = models.DateTimeField(auto_now=True, editable=False)
-    is_active = models.BooleanField(default=True)
+    display_name = models.CharField(max_length=5)
+
+    objects = SoftDeleteManager()
+    all_objects = RestorableManager()
 
     def __str__(self) -> str:
-        return self.name
+        return self.display_name
 
     class Meta:
         verbose_name = 'Size'
@@ -52,14 +56,15 @@ class Size(models.Model):
         db_table = 'size'
 
 
-class TagMaster(models.Model):
+class TagMaster(AuditedModel, SoftDeleteModel):
     name = models.CharField(max_length=50)
-    created_on = models.DateTimeField(auto_now_add=True, editable=False)
-    updated_on = models.DateTimeField(auto_now=True, editable=False)
-    is_active = models.BooleanField(default=True)
+    display_name = models.CharField(max_length=50)
+
+    objects = SoftDeleteManager()
+    all_objects = RestorableManager()
 
     def __str__(self) -> str:
-        return self.name
+        return self.display_name
 
     class Meta:
         verbose_name = 'Tag Master'
@@ -67,16 +72,18 @@ class TagMaster(models.Model):
         db_table = 'tag_master'
 
 
-class Tag(models.Model):
+class Tag(AuditedModel, SoftDeleteModel):
     name = models.CharField(max_length=50)
+    display_name = models.CharField(
+        max_length=50)
     category = models.ForeignKey(
-        TagMaster, on_delete=models.CASCADE, limit_choices_to=Q(is_active=True))
-    created_on = models.DateTimeField(auto_now_add=True, editable=False)
-    updated_on = models.DateTimeField(auto_now=True, editable=False)
-    is_active = models.BooleanField(default=True)
+        TagMaster, on_delete=models.CASCADE)
+
+    objects = SoftDeleteManager()
+    all_objects = RestorableManager()
 
     def __str__(self) -> str:
-        return self.name
+        return self.display_name
 
     class Meta:
         verbose_name = 'Tag'
@@ -84,23 +91,27 @@ class Tag(models.Model):
         db_table = 'tag'
 
 
-class Product(models.Model):
+class Product(AuditedModel, SoftDeleteModel):
     name = models.CharField(max_length=50)
     url_name = models.SlugField(db_index=True, max_length=60, unique=True)
     price = models.DecimalField(max_digits=6, decimal_places=2)
-    description = models.CharField(max_length=512)
-    highlights = models.CharField(max_length=256, help_text=_('Separate each list item with a semicolon (;)'))
+    description = models.TextField(max_length=1000)
+    highlights = models.CharField(max_length=256, help_text=_(
+        'Separate each list item with a semicolon (;)'))
     details = models.CharField(max_length=256)
     original_price = models.DecimalField(max_digits=7, decimal_places=2)
     primary_category = models.ForeignKey(
-        PrimaryCategory, on_delete=models.CASCADE, limit_choices_to=Q(is_active=True))
+        PrimaryCategory, on_delete=models.CASCADE)
     secondary_category = models.ForeignKey(
-        SecondaryCategory, on_delete=models.CASCADE, limit_choices_to=Q(is_active=True))
-    size = models.ManyToManyField(Size, limit_choices_to=Q(is_active=True))
-    tags = models.ManyToManyField(Tag, limit_choices_to=Q(is_active=True))
-    created_on = models.DateTimeField(auto_now_add=True, editable=False)
-    updated_on = models.DateTimeField(auto_now=True, editable=False)
-    is_active = models.BooleanField(default=True)
+        SecondaryCategory, on_delete=models.CASCADE)
+    size = models.ManyToManyField(Size)
+    tags = models.ManyToManyField(Tag)
+    is_featured = models.BooleanField(
+        default=False, verbose_name=_("Is Featured?"))
+    region = models.ForeignKey(Region, on_delete=models.CASCADE)
+
+    objects = SoftDeleteManager()
+    all_objects = RestorableManager()
 
     def __str__(self) -> str:
         return self.name
