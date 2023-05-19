@@ -7,7 +7,6 @@ from django.utils.translation import gettext_lazy as _
 class CustomJWTAuthentication(JWTAuthentication):
     def get_header(self, request):
         super().get_header(request)
-        print("Executing Custom Class")
         auth_token = request.COOKIES.get('authToken', '')
         auth_token_dict = json.loads(auth_token) if auth_token else {}
         header = 'Bearer ' + \

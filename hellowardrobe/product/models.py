@@ -1,5 +1,4 @@
 from django.db import models
-from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from common.models import Region, AuditedModel, SoftDeleteModel, SoftDeleteManager, RestorableManager
 
@@ -104,7 +103,8 @@ class Product(AuditedModel, SoftDeleteModel):
         PrimaryCategory, on_delete=models.CASCADE)
     secondary_category = models.ForeignKey(
         SecondaryCategory, on_delete=models.CASCADE)
-    size = models.ManyToManyField(Size)
+    size = models.ManyToManyField(
+        Size, through="ProductSize", through_fields=("product", "size"))
     tags = models.ManyToManyField(Tag)
     is_featured = models.BooleanField(
         default=False, verbose_name=_("Is Featured?"))
@@ -121,3 +121,22 @@ class Product(AuditedModel, SoftDeleteModel):
         verbose_name_plural = 'Products'
         db_table = 'product'
         ordering = ['name']
+
+
+class ProductSize(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    size = models.ForeignKey(Size, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        verbose_name = 'Product Size'
+        verbose_name_plural = 'Product Sizes'
+        db_table = 'product_size'
+        constraints = [models.UniqueConstraint(
+            fields=("product", "size"), name="unique_product_size_mapping")]
+    @property 
+    def product_size_key(self) -> str:
+        return f"{self.product}_{self.size.display_name}"
+
+    def __str__(self) -> str:
+        return f"{self.product} - {self.size}"

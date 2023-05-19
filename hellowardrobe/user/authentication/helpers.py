@@ -1,4 +1,4 @@
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken, TokenError
 from rest_framework.request import Request
 from django.contrib.auth.signals import user_logged_in, user_login_failed
 from rest_framework.exceptions import AuthenticationFailed
@@ -9,14 +9,17 @@ import json
 from django.db.models import Q
 from django.contrib.auth.hashers import check_password
 from common.utils import ResponsePayload
+from cart_wishlist.utils import update_cart_wishlist
 
 
-def auth_token_for_user(user: User, request: Request, response_data: str | None = None):
+def auth_token_for_user(user: User, request: Request, response_message: str | None = None):
     refresh = RefreshToken.for_user(user)
     response = Response(status=status.HTTP_200_OK)
     response.set_cookie("authToken", json.dumps({"refresh": str(
         refresh), "access": str(refresh.access_token)}), httponly=True)
-    response.data = {"message": response_data} if response_data else None
+    response.data = update_cart_wishlist(
+        user, request.data.get("cartWishlistData", {}))
+    response.data.update({"message": response_message})
     user_logged_in.send(sender=User, request=request, user=user)
     return response
 
@@ -54,3 +57,22 @@ def create_user(validated_data: dict, request: Request):
         return auth_token_for_user(user, request, "Account created successfully")
     except Exception as e:
         return ResponsePayload().error(str(e), status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def check_authentication(request: Request, get_user_id: bool = False):
+    response = {"is_authenticated": False, "user_id": None, "error_code": None}
+    token = request.COOKIES.get("authToken")
+    if not token:
+        response["error_code"] = "NO_TOKEN"
+        return response
+    try:
+        auth_token = json.loads(token)
+        token = AccessToken(auth_token["access"])
+        response["is_authenticated"] = True
+        if get_user_id:
+            response["user_id"] = token.get("user_id")
+    except TokenError:
+        response.update({"error_code": "INVALID"})
+    except Exception:
+        response.update({"error_code": "ERROR"})
+    return response

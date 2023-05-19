@@ -30,9 +30,9 @@ def user_logged_in_callback(sender, request: HttpRequest, user: User, **kwargs):
         if s.get_decoded().get("_auth_user_id") == str(user.id) and s.pk != request.session.session_key:
             s.delete()
 
-    # for k in cache.keys("django.contrib.sessions.cached_db*"):  # type: ignore
+""" # for k in cache.keys("django.contrib.sessions.cached_db*"):  # type: ignore
     #     if cache.get(k).get("_auth_user_id") == str(user.id) and k[33:] != request.session.session_key:
-    #         cache.delete(k)
+    #         cache.delete(k)"""
 
 
 @receiver(user_logged_out)

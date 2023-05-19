@@ -68,8 +68,9 @@ class SoftDeleteModel(models.Model):
         editable=False,
     )
 
-    def delete(self, current_user=None):
+    def delete(self, *args, **kwargs):
         """Perform soft-deletion by updating parameters."""
+        current_user = kwargs.pop("current_user")
         self.deleted_at = now()
         self.deleted_by = self.deleted_by if self.deleted_by and not current_user else current_user
         super().save()

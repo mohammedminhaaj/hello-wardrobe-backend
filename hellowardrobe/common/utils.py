@@ -25,7 +25,7 @@ class ResponsePayload():
     def success(self, success_message: str | None = constants.SUCCESS, data: dict | None = None):
         self.__status = "success"
         self.__message = success_message
-        if not isinstance(data, dict):
+        if data and not isinstance(data, dict):
             raise ValueError(
                 "Invalid data type passed to data. Please use a dictionary")
         self.__data = data

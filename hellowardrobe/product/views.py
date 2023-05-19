@@ -73,7 +73,7 @@ def filter_details(request):
 @api_view(['GET'])
 def product_overview(request, url_name):
     try:
-        product = Product.objects.defer(
+        product = Product.all_objects.defer(
             'primary_category', 'secondary_category', 'tags', 'created_at', 'deleted_by', 'modified_at', 'created_by', 'modified_by').get(url_name=url_name)
         serializer = ProductOverviewSerializer(product, many=False)
         return ResponsePayload().success(data=serializer.data)

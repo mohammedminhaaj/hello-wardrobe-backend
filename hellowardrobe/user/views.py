@@ -1,7 +1,8 @@
 from api.serializers.user_serializer import ForgotPasswordSerializer, CreateAccountSerializer, CredentialLoginSerializer, OtpLoginSerializer, VerifyOtpSerializer
 from .models import UserOtp, User
-from .authentication import create_user, login_user
-from rest_framework.decorators import api_view
+from .authentication import create_user, login_user, check_authentication, CustomJWTAuthentication
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.request import Request
 from os import getenv
@@ -73,7 +74,8 @@ def otp_login(request: Request):
                 "POST", url, data=payload, headers=headers)
             return ResponsePayload().success(data=response.json())
         else:
-            user_login_failed.send(User, {"email_number": obj.mobile}, request)
+            user_login_failed.send(sender=User, credentials={
+                                   "mobile_number": obj.mobile}, request=request)
             return ResponsePayload().error("Maximum attempts exceeded. Please try again after some time")
     else:
         return ResponsePayload().serializer_error(serializer.errors)
@@ -105,7 +107,8 @@ def verify_otp(request: Request):
 
         obj.attempts = obj.attempts + 1
         obj.save(update_fields=["attempts"])
-        user_login_failed.send(User, {"email_number": obj.mobile}, request)
+        user_login_failed.send(sender=User, credentials={
+                               "mobile_number": obj.mobile}, request=request)
         return ResponsePayload().error("Incorrect OTP" if obj.attempts <= 6 else "Maximum attempts exceeded. Please try again after some time")
 
     except UserOtp.DoesNotExist:
@@ -156,23 +159,28 @@ def forgot_password(request: Request):
             return ResponsePayload().error("Sorry, we didn't find any account linked to the given details", status.HTTP_404_NOT_FOUND)
     else:
         return ResponsePayload().serializer_error(serializer.errors)
-
-
+    
 @api_view(["POST"])
 def refresh_token(request: Request):
-    token = request.COOKIES.get('authToken', '')
-    if not token:
+    auth_response = check_authentication(request)
+    if auth_response["error_code"] == "NO_TOKEN":
         return ResponsePayload().error("Access token not found")
-    auth_token = json.loads(token)
-    response = Response()
-    try:
-        generated_token = RefreshToken(auth_token["refresh"])
-        auth_token["access"] = str(generated_token.access_token)
-        response.status_code = status.HTTP_200_OK
-        response.set_cookie("authToken", json.dumps(auth_token), httponly=True)
-        return response
-    except TokenError:
-        response.delete_cookie("authToken")
-        response.data = {"message": "Refresh token expired"}
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return response
+    elif auth_response["error_code"] == "INVALID":
+        token = request.COOKIES.get("authToken")
+        auth_token = json.loads(token)
+        response = Response()
+        try:
+            generated_token = RefreshToken(auth_token["refresh"])
+            auth_token["access"] = str(generated_token.access_token)
+            response.status_code = status.HTTP_200_OK
+            response.set_cookie("authToken", json.dumps(auth_token), httponly=True)
+            return response
+        except TokenError:
+            response.delete_cookie("authToken")
+            response.data = {"message": "Refresh token expired"}
+            response.status_code = status.HTTP_403_FORBIDDEN
+            return response
+    else:
+        return ResponsePayload().error("Error while parsing authentication token")
+
+

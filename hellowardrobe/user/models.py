@@ -54,7 +54,7 @@ class LoginAttempt(models.Model):
 
 
 
-class UserOtp(AuditedModel):
+class UserOtp(models.Model):
     mobile = models.CharField(max_length=10, verbose_name=_("Mobile Number"), db_index=True, unique=True)
     otp = models.CharField(max_length=256, verbose_name=_("OTP"))
     expires_on = models.DateTimeField(verbose_name=_("OTP Expires on"))
