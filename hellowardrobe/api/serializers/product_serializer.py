@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from product.models import Product, PrimaryCategory, SecondaryCategory, Size, Tag, TagMaster
+from product.models import Product, PrimaryCategory, SecondaryCategory, Size, Tag, TagMaster, SortMenu
 
 
 class PrimaryCategorySerializer(serializers.ModelSerializer):
@@ -34,6 +34,11 @@ class SizeSerializer(serializers.ModelSerializer):
         model = Size
         fields = ['id', 'display_name', 'category']
 
+class SortMenuSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SortMenu
+        fields = ['id', 'display_name', 'field_name']
+
 
 class TagMasterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -54,13 +59,9 @@ class FilterSerializer(serializers.Serializer):
     size_details = SizeSerializer(many = True)
     filter_labels = TagMasterSerializer(many = True)
     filter_details = TagSerializer(many = True)
+    sort_menu = SortMenuSerializer(many = True)
 
 class ProductListSerializer(serializers.ModelSerializer):
-
-    # primary_category = PrimaryCategorySerializer()
-    # secondary_category = SecondaryCategorySerializer()
-    # size = SizeSerializer(read_only=True, many=True)
-    # tags = TagSerializer(read_only=True, many=True)
 
     class Meta:
         model = Product

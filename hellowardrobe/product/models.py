@@ -89,6 +89,21 @@ class Tag(AuditedModel, SoftDeleteModel):
         verbose_name_plural = 'Tags'
         db_table = 'tag'
 
+class SortMenu(AuditedModel, SoftDeleteModel):
+    name = models.CharField(max_length=50)
+    display_name = models.CharField(max_length=50)
+    field_name = models.CharField(max_length=50)
+
+    objects = SoftDeleteManager()
+    all_objects = RestorableManager()
+
+    def __str__(self) -> str:
+        return self.display_name
+
+    class Meta:
+        verbose_name = 'Sort Menu'
+        verbose_name_plural = 'Sort Menus'
+        db_table = 'sort_menu'
 
 class Product(AuditedModel, SoftDeleteModel):
     name = models.CharField(max_length=50)

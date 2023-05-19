@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view
 from rest_framework.request import Request
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
-from .models import Product, Tag, Size, PrimaryCategory, SecondaryCategory, TagMaster
+from .models import Product, Tag, Size, PrimaryCategory, SecondaryCategory, TagMaster, SortMenu
 from api.serializers.product_serializer import ProductListSerializer, ProductOverviewSerializer, FilterSerializer
 from common.utils import ResponsePayload
 
@@ -24,21 +24,18 @@ def list_products(request: Request):
 
     filter_dict = {}
 
-    products = Product.objects.select_related('primary_category', 'secondary_category').prefetch_related(
-        'size', 'tags')
-
     for value in request.query_params:
-        if applied_filter_dictionary.get(value) not in filter_dict:
+        if applied_filter_dictionary.get(value.lower()) not in filter_dict:
             filter_dict[applied_filter_dictionary.get(
-                value)] = request.query_params.getlist(value)
+                value.lower())] = request.query_params.getlist(value)
         else:
             filter_dict[applied_filter_dictionary.get(
-                value)].extend(request.query_params.getlist(value))
+                value.lower())].extend(request.query_params.getlist(value))
 
     if None in filter_dict:
         del filter_dict[None]
 
-    products = products.filter(**filter_dict)
+    products = Product.objects.filter(**filter_dict)
 
     if request.query_params.getlist('sort'):
         products = products.order_by(request.query_params.get('sort'))
@@ -57,16 +54,18 @@ def filter_details(request):
     size_data = Size.objects.all()
     filter_labels = TagMaster.objects.all()
     filter_data = Tag.objects.select_related('category').all()
+    sort_menu = SortMenu.objects.all()
 
-    filter_sidebar_dict = {
+    filter_dict = {
         'primary_category_details': primary_category_data,
         'secondary_category_details': secondary_category_data,
         'size_details': size_data,
         'filter_labels': filter_labels,
         'filter_details': filter_data,
+        "sort_menu": sort_menu
     }
 
-    serializer = FilterSerializer(filter_sidebar_dict)
+    serializer = FilterSerializer(filter_dict)
     return ResponsePayload().success(data=serializer.data)
 
 

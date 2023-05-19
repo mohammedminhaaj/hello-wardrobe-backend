@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import PrimaryCategory, SecondaryCategory, Product, Size, Tag, TagMaster, ProductSize
+from .models import PrimaryCategory, SecondaryCategory, Product, Size, Tag, TagMaster, ProductSize, SortMenu
 
 from common.admin import AuditedAdminMixin
 
@@ -32,6 +32,9 @@ class SecondaryCategoryAdmin(AuditedAdminMixin):
 class SizeAdmin(AuditedAdminMixin):
     list_display = ['name', 'display_name']
 
+@admin.register(SortMenu)
+class SortMenuAdmin(AuditedAdminMixin):
+    list_display = ['name', 'display_name', "field_name"]
 
 @admin.register(TagMaster)
 class TagMasterAdmin(AuditedAdminMixin):
