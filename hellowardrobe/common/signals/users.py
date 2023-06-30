@@ -57,7 +57,7 @@ def user_login_failed_callback(sender, credentials: dict[str, str], request: Htt
         )
 
         current_time = now()
-        # temporarily block user accounts if wrong password provided 5 times within the last 24 hours
+        # temporarily block user accounts if wrong password provided 10 times within the last 24 hours
         if (
             LoginAttempt.objects.filter(
                 user=user,

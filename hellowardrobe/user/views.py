@@ -100,7 +100,7 @@ def verify_otp(request: Request):
             obj.save(update_fields=["attempts"])
 
             response = login_user({"email_number": obj.mobile}, request)
-            if response and "code" in response["error"] and response["error"]["code"] == status.HTTP_404_NOT_FOUND:
+            if response and "error" in response.data and "code" in response.data["error"] and response.data["error"]["code"] == status.HTTP_404_NOT_FOUND:
                 response = create_user(
                     {"mobile_number": obj.mobile, "password": secrets.token_urlsafe(8)}, request)
             return response
@@ -159,7 +159,8 @@ def forgot_password(request: Request):
             return ResponsePayload().error("Sorry, we didn't find any account linked to the given details", status.HTTP_404_NOT_FOUND)
     else:
         return ResponsePayload().serializer_error(serializer.errors)
-    
+
+
 @api_view(["POST"])
 def refresh_token(request: Request):
     auth_response = check_authentication(request)
@@ -173,7 +174,8 @@ def refresh_token(request: Request):
             generated_token = RefreshToken(auth_token["refresh"])
             auth_token["access"] = str(generated_token.access_token)
             response.status_code = status.HTTP_200_OK
-            response.set_cookie("authToken", json.dumps(auth_token), httponly=True)
+            response.set_cookie("authToken", json.dumps(
+                auth_token), httponly=True)
             return response
         except TokenError:
             response.delete_cookie("authToken")
@@ -182,5 +184,3 @@ def refresh_token(request: Request):
             return response
     else:
         return ResponsePayload().error("Error while parsing authentication token")
-
-
